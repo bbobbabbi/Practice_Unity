@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using UnityEngine.UIElements;
+using static FunctionLibrary;
 using static UnityEngine.GraphicsBuffer;
 
 public class Graph : MonoBehaviour
@@ -10,12 +12,13 @@ public class Graph : MonoBehaviour
     [SerializeField, Range(10,100)] private int resolution = 10;
     [SerializeField, Range(2, 20)] private float speed = 2f;
     [SerializeField] private Transform dotParent;
-
+    [SerializeField, Range(0, 1)] private float sinPriquncy = 1f;
+    [SerializeField] private FunctionLibrary.FunctionName sinGraph = 0;
     Transform dot;
     Transform[] points;
     delegate void playGraph(float a);
     playGraph play;
-    enum GraphType { one,two,three,spiral,rspiral};
+    enum GraphType { one,two,three,ripple,spiral,rspiral};
     enum DotType{ multi,single};
     DotType dotType = DotType.single;
     GraphType graphType = GraphType.one;
@@ -29,10 +32,10 @@ public class Graph : MonoBehaviour
         //    point.localPosition = new Vector3(pos,pos*pos, 0);
         //    point.localScale = scale;
         //}
-        points = new Transform[resolution];
+        points = new Transform[resolution * resolution];
         float step = 2f / resolution;
         var scale = Vector3.one * step;
-        for (int j = 0; j < points.Length; j++)
+        for (int j = 0;  j < points.Length; j++)
         {
             points[j] = Instantiate(pointPrefab);
             points[j].localScale = scale;
@@ -85,23 +88,37 @@ public class Graph : MonoBehaviour
     }
 
     void SinGraph(float t)
-    {  
-        for (int j = 0; j < points.Length; j++)
+    {
+        f += speed * Time.deltaTime/5f;
+        FunctionLibrary.actionFunc fuc = FunctionLibrary.GetFunction(sinGraph);
+        for (int j = 0, x=0, z=0; j < points.Length; j++,x++)
         {
+            if (x == resolution)
+            {
+                x = 0;
+                z += 1;
+            }
             Transform jpoint = points[j]; 
             float step = 2f / resolution;
             Vector3 position = jpoint.localPosition;
-            position.x = (j + 0.5f) * step - 1f;
-            position.y = Mathf.Sin(Mathf.PI * (position.x + Time.time));
+            position.x = (x + 0.5f) * step - 1f;
+            position.z = ((z + 0.5f) * step - 1f);
+            position.y = fuc(position.x, position.z, t, sinPriquncy);
             jpoint.localPosition = position;
         }
     }
 
+
+
     void PlayGraph(float t) {
-        if (t < 0 || t > resolution)
+        if (t < 0)
         {
             trigger = -trigger;
-        }
+            f = 0;
+        } else if (t > resolution) {
+            trigger = -trigger;
+            f = resolution;
+        } 
         f += speed * trigger * Time.deltaTime;
         float step = 2f / resolution;
         var position = Vector3.zero;
@@ -114,31 +131,15 @@ public class Graph : MonoBehaviour
             position.y = position.x * position.x;
         else if (graphType == GraphType.three)
             position.y = position.x * position.x * position.x;
+        else if (graphType == GraphType.ripple)
+            position.y = FunctionLibrary.Ripple(position.x,t);
         else if (graphType == GraphType.spiral)
-        {  int deg = 30;
-            float temp = (t + 0.5f) * step - 1f;
-            if (temp<0) {
-                temp = -temp;
-            }
-            float theta = Mathf.Lerp(0f, deg, temp);   // 0..maxTheta
-            float r = 0.01F + 0.05f * theta;
-            position.x = r * Mathf.Cos(theta);
-            position.z = r * Mathf.Sin(theta);
-            position.y = (t + 0.5f) * step - 1f;
+        {
+            position = FunctionLibrary.spril(t, step);
         }
         else if (graphType == GraphType.rspiral)
         {
-            int deg = 30;
-            float temp = (t + 0.5f) * step - 1f;
-            if (temp < 0)
-            {
-                temp = -temp;
-            }
-            float theta = Mathf.Lerp(0f, deg, temp);   // 0..maxTheta
-            float r = 0.01F + 0.04f * theta;
-            position.x = (t + 0.5f) * step - 1f;
-            position.z = r * Mathf.Sin(theta);
-            position.y = r * Mathf.Cos(theta);
+            position = FunctionLibrary.Rspril(t, step);
         }
         dot.localPosition = position;
         dot.localScale = scale;
