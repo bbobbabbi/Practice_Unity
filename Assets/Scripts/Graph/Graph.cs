@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static FunctionLibrary;
@@ -13,7 +14,8 @@ public class Graph : MonoBehaviour
     [SerializeField, Range(2, 20)] private float speed = 2f;
     [SerializeField] private Transform dotParent;
     [SerializeField, Range(0, 1)] private float sinPriquncy = 1f;
-    [SerializeField] private FunctionLibrary.FunctionName sinGraph = 0;
+    [SerializeField] private FunctionLibrary.FunctionName sinGraph = FunctionName.None;
+    [SerializeField] private FunctionLibrary.NewFunctionName newSinGraph = NewFunctionName.Sphere;
     Transform dot;
     Transform[] points;
     delegate void playGraph(float a);
@@ -90,21 +92,41 @@ public class Graph : MonoBehaviour
     void SinGraph(float t)
     {
         f += speed * Time.deltaTime/5f;
-        FunctionLibrary.actionFunc fuc = FunctionLibrary.GetFunction(sinGraph);
-        for (int j = 0, x=0, z=0; j < points.Length; j++,x++)
+        FunctionLibrary.actionFunc fuc;
+        FunctionLibrary.newActionFunc nfuc;
+        float step = 2f / resolution;
+        if (sinGraph != FunctionName.None)
         {
-            if (x == resolution)
+            fuc = FunctionLibrary.GetFunction(sinGraph);
+            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
             {
-                x = 0;
-                z += 1;
+                if (x == resolution)
+                {
+                    x = 0;
+                    z += 1;
+                }
+                Transform jpoint = points[j];
+                Vector3 position = jpoint.localPosition;
+                position.x = (x + 0.5f) * step - 1f;
+                position.z = ((z + 0.5f) * step - 1f);
+                position.y = fuc(position.x, position.z, t, sinPriquncy);
+                jpoint.localPosition = position;
             }
-            Transform jpoint = points[j]; 
-            float step = 2f / resolution;
-            Vector3 position = jpoint.localPosition;
-            position.x = (x + 0.5f) * step - 1f;
-            position.z = ((z + 0.5f) * step - 1f);
-            position.y = fuc(position.x, position.z, t, sinPriquncy);
-            jpoint.localPosition = position;
+        }
+        else if (newSinGraph != NewFunctionName.None) {
+            nfuc = FunctionLibrary.GetFunction(newSinGraph);
+            float v = 0.5f * step - 1f;
+            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
+            {
+                if (x == resolution)
+                {
+                    x = 0;
+                    z += 1;
+                    v = (z + 0.5f) * step - 1f;
+                }
+                float u = (x + 0.5f) * step - 1f;
+                points[j].localPosition = nfuc(u, v, t,sinPriquncy);
+            }
         }
     }
 

@@ -1149,7 +1149,8 @@ MonoBehaviour:
   speed: 8.9
   dotParent: {fileID: 494696344}
   sinPriquncy: 1
-  sinGraph: 0
+  sinGraph: 4
+  newSinGraph: 3
 --- !u!4 &2128212973
 Transform:
   m_ObjectHideFlags: 0
