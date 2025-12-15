@@ -8,18 +8,37 @@ public static class  FunctionLibrary
     public delegate Vector3 newActionFunc(float u, float v,float t, float m);
     public enum FunctionName {  Wave, MultiWave, Ripple, NRipple, None  }
     public enum NewFunctionName { NewWave, NewMultiWave, NewRipple, Sphere , Torus, None  }
+    public enum TransitionMode {Cycle,Random};
     static actionFunc[] functions = { Wave, MultiWave, Ripple, NRipple };
     static newActionFunc[] newFunctions = { NewWave, NewMultiWave, NewRipple, Sphere, Torus };
-    
+
+    public static NewFunctionName GetNextFunctionName(NewFunctionName name) {
+        if (name == NewFunctionName.Torus) name += 1;
+        return (int)name < newFunctions.Length ? name + 1 : 0 ;
+    }  
+    public static NewFunctionName GetRandomFunctionName(NewFunctionName name) {
+        if (name == NewFunctionName.Torus) name += 1;
+        var choice = (NewFunctionName)UnityEngine.Random.Range(1, newFunctions.Length+1);
+        return choice == name ? 0 : choice;
+    }
+
+    public static Vector3 Morph(float u, float v, float t,float m, newActionFunc from, newActionFunc to, float progress)
+    {
+        return Vector3.LerpUnclamped(
+            from(u, v, t,m), to(u, v, t, m), SmoothStep(0f, 1f, progress)
+        );
+    }
+
     public static actionFunc GetFunction(FunctionName name)
     {
         return functions[(int)name];
     }
     public static newActionFunc GetFunction(NewFunctionName name)
     {
+        if (name == NewFunctionName.None) return newFunctions[0];
         return newFunctions[(int)name];
     }
-
+  
     public static float Wave(float x, float z, float t, float m) {
         return Sin(PI*(m*x+z+t));
     }

@@ -6,24 +6,41 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using static FunctionLibrary;
 using static UnityEngine.GraphicsBuffer;
+using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks.CompilerServices;
+using System.Threading;
+using System;
+using static Unity.VisualScripting.Member;
+using System.Timers;
 
 public class Graph : MonoBehaviour
 {
     [SerializeField] private Transform pointPrefab;
-    [SerializeField, Range(10,100)] private int resolution = 10;
+    [SerializeField, Range(10, 100)] private int resolution = 10;
     [SerializeField, Range(2, 20)] private float speed = 2f;
     [SerializeField] private Transform dotParent;
     [SerializeField, Range(0, 1)] private float sinPriquncy = 1f;
     [SerializeField] private FunctionLibrary.FunctionName sinGraph = FunctionName.None;
     [SerializeField] private FunctionLibrary.NewFunctionName newSinGraph = NewFunctionName.Sphere;
+    [SerializeField, Min(0)] private float functionDuration = 1f, transitionDuration = 1f;
+    [SerializeField] private TransitionMode transitionMode = TransitionMode.Cycle;
+
+
+    float duration;
     Transform dot;
     Transform[] points;
     delegate void playGraph(float a);
     playGraph play;
-    enum GraphType { one,two,three,ripple,spiral,rspiral};
-    enum DotType{ multi,single};
+    enum GraphType { one, two, three, ripple, spiral, rspiral };
+    enum DotType { multi, single };
     DotType dotType = DotType.single;
     GraphType graphType = GraphType.one;
+    private CancellationTokenSource source;
+
+    bool transitioning;
+    FunctionLibrary.NewFunctionName transitionFunction;
+
+
     private void Awake()
     {
         //var scale = Vector3.one *(2f/resolution);
@@ -37,7 +54,7 @@ public class Graph : MonoBehaviour
         points = new Transform[resolution * resolution];
         float step = 2f / resolution;
         var scale = Vector3.one * step;
-        for (int j = 0;  j < points.Length; j++)
+        for (int j = 0; j < points.Length; j++)
         {
             points[j] = Instantiate(pointPrefab);
             points[j].localScale = scale;
@@ -59,25 +76,39 @@ public class Graph : MonoBehaviour
 
     }
 
-    float f =0;   
+    float f = 0;
     int trigger = 1;
 
 
-    public void SwitchingGraph() {
-        if (graphType != GraphType.rspiral)
+    public void SwitchingGraph()
+    {
+        if (source != null && !source.IsCancellationRequested)
         {
-            graphType += 1;
+            ForcedSetMorphPosition();
         }
-        else { 
-            graphType = 0;
+        else
+        {
+            if (graphType != GraphType.rspiral)
+            {
+                graphType += 1;
+            }
+            else
+            {
+                graphType = 0;
+            }
         }
     }
-    public void ChangePlay() {
+    public void ChangePlay()
+    {
         if (dotType == DotType.multi)
         {
             dot.gameObject.SetActive(true);
-            dotParent.gameObject.SetActive(false);  
+            dotParent.gameObject.SetActive(false);
             dotType = DotType.single;
+            //토큰 취소
+            source?.Cancel();
+            source?.Dispose();
+            source = null;
             play = PlayGraph;
         }
         else
@@ -85,15 +116,81 @@ public class Graph : MonoBehaviour
             dot.gameObject.SetActive(false);
             dotParent.gameObject.SetActive(true);
             dotType = DotType.multi;
+            source = StartRotate();
+            USFRotateFunction().Forget();
             play = SinGraph;
+        }
+    }
+
+
+    CancellationTokenSource StartRotate()
+    {
+        source?.Cancel();
+        source?.Dispose();
+
+        return new CancellationTokenSource();
+    }
+
+    private async UniTask USRotateFunction()
+    {
+        while (!source.Token.IsCancellationRequested)
+        {
+
+            await UniTask.Delay(TimeSpan.FromSeconds(functionDuration), cancellationToken: source.Token);
+            if (transitionMode == TransitionMode.Cycle)
+            {
+                newSinGraph = FunctionLibrary.GetNextFunctionName(newSinGraph);
+            }
+            else
+            {
+                newSinGraph = FunctionLibrary.GetRandomFunctionName(newSinGraph);
+            }
+        }
+    }
+    private async UniTask USFRotateFunction()
+    {
+        while (!source.Token.IsCancellationRequested)
+        {
+            await UniTask.Yield(PlayerLoopTiming.Update, source.Token);
+            duration += Time.deltaTime;
+            if (transitioning)
+            {
+                if (duration >= transitionDuration)
+                {
+                    duration -= transitionDuration;
+                    transitioning = false;
+                }
+            }
+            else
+            {
+                if (duration >= functionDuration)
+                {
+                    ForcedSetMorphPosition();
+                }
+            }
+        }
+    }
+
+    private void ForcedSetMorphPosition()
+    {
+        duration = 0;
+        transitioning = true;
+        transitionFunction = newSinGraph;
+        if (transitionMode == TransitionMode.Cycle)
+        {
+            newSinGraph = FunctionLibrary.GetNextFunctionName(newSinGraph);
+        }
+        else
+        {
+            newSinGraph = FunctionLibrary.GetRandomFunctionName(newSinGraph);
         }
     }
 
     void SinGraph(float t)
     {
-        f += speed * Time.deltaTime/5f;
+        f += speed * Time.deltaTime / 5f;
         FunctionLibrary.actionFunc fuc;
-        FunctionLibrary.newActionFunc nfuc;
+        FunctionLibrary.newActionFunc fnfuc, tnfunc, nnfunc;
         float step = 2f / resolution;
         if (sinGraph != FunctionName.None)
         {
@@ -113,8 +210,11 @@ public class Graph : MonoBehaviour
                 jpoint.localPosition = position;
             }
         }
-        else if (newSinGraph != NewFunctionName.None) {
-            nfuc = FunctionLibrary.GetFunction(newSinGraph);
+        else if (newSinGraph != NewFunctionName.None && transitioning)
+        {
+            fnfuc = FunctionLibrary.GetFunction(transitionFunction);
+            tnfunc = FunctionLibrary.GetFunction(newSinGraph);
+            float progress = duration / transitionDuration;
             float v = 0.5f * step - 1f;
             for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
             {
@@ -125,22 +225,42 @@ public class Graph : MonoBehaviour
                     v = (z + 0.5f) * step - 1f;
                 }
                 float u = (x + 0.5f) * step - 1f;
-                points[j].localPosition = nfuc(u, v, t,sinPriquncy);
+                points[j].localPosition = FunctionLibrary.Morph(u, v, t, sinPriquncy, fnfuc, tnfunc, progress);
+            }
+        }
+        else if (newSinGraph != NewFunctionName.None && !transitioning)
+        {
+            nnfunc = FunctionLibrary.GetFunction(newSinGraph);
+            float progress = f / transitionDuration;
+            float v = 0.5f * step - 1f;
+            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
+            {
+                if (x == resolution)
+                {
+                    x = 0;
+                    z += 1;
+                    v = (z + 0.5f) * step - 1f;
+                }
+                float u = (x + 0.5f) * step - 1f;
+                points[j].localPosition = nnfunc(u, v, t, sinPriquncy);
             }
         }
     }
 
 
 
-    void PlayGraph(float t) {
+    void PlayGraph(float t)
+    {
         if (t < 0)
         {
             trigger = -trigger;
             f = 0;
-        } else if (t > resolution) {
+        }
+        else if (t > resolution)
+        {
             trigger = -trigger;
             f = resolution;
-        } 
+        }
         f += speed * trigger * Time.deltaTime;
         float step = 2f / resolution;
         var position = Vector3.zero;
@@ -154,7 +274,7 @@ public class Graph : MonoBehaviour
         else if (graphType == GraphType.three)
             position.y = position.x * position.x * position.x;
         else if (graphType == GraphType.ripple)
-            position.y = FunctionLibrary.Ripple(position.x,t);
+            position.y = FunctionLibrary.Ripple(position.x, t);
         else if (graphType == GraphType.spiral)
         {
             position = FunctionLibrary.spril(t, step);
@@ -169,8 +289,11 @@ public class Graph : MonoBehaviour
 
     void Update()
     {
-        
         play.Invoke(f);
     }
 
+    private void OnDestroy()
+    {
+        source?.Dispose();
+    }
 }
