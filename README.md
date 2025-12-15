@@ -23,6 +23,7 @@
 
   <details>
   <summary>DAY 3</summary>
+
   ### 유니테스크와 보간함수를 사용한 그래프 변화
   ![Demo](gifs/Movie_009.gif) 
 
