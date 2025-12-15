@@ -25,10 +25,10 @@
   <summary>DAY 3</summary>
 
   ### 유니테스크와 보간함수를 사용한 그래프 변화
-  ![Demo](gifs/Movie_009.gif) 
+  ![Demo](gifs/Movie_011.gif) 
 
   ### 상황에 맞게 테스크를 조종하였다.
-  ![Demo](gifs/Movie_010.gif)
+  ![Demo](gifs/Movie_012.gif)
 
   </details>
 
