@@ -390,6 +390,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 88991961}
   m_CullTransparentMesh: 1
+--- !u!1 &151506607
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 151506608}
+  m_Layer: 0
+  m_Name: DotParent
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &151506608
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 151506607}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 860974542}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &314491560
 GameObject:
   m_ObjectHideFlags: 0
@@ -473,8 +504,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2128212972}
-        m_TargetAssemblyTypeName: Graph, Assembly-CSharp
+      - m_Target: {fileID: 2128212974}
+        m_TargetAssemblyTypeName: GpuGraph, Assembly-CSharp
         m_MethodName: SwitchingGraph
         m_Mode: 1
         m_Arguments:
@@ -746,7 +777,7 @@ Transform:
   m_GameObject: {fileID: 416975646}
   serializedVersion: 2
   m_LocalRotation: {x: -0.20757641, y: -0.34187257, z: 0.07770786, w: -0.9132342}
-  m_LocalPosition: {x: -1.2237878, y: 1.265975, z: -1.6049709}
+  m_LocalPosition: {x: -1.2237878, y: 1.5, z: -1.6049709}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -827,6 +858,61 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2128212973}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &860974540
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 860974542}
+  - component: {fileID: 860974541}
+  m_Layer: 0
+  m_Name: Graph
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!114 &860974541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 860974540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26ab20491a4fd0943b61c1553c204c18, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointPrefab: {fileID: 2989641491544699474, guid: 29b30b50cab527d44b04b50e2cb681ff, type: 3}
+  resolution: 300
+  speed: 2
+  dotParent: {fileID: 151506608}
+  sinPriquncy: 1
+  sinGraph: 4
+  newSinGraph: 3
+  functionDuration: 1
+  transitionDuration: 1
+  transitionMode: 0
+--- !u!4 &860974542
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 860974540}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 151506608}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1014795274
 GameObject:
   m_ObjectHideFlags: 0
@@ -880,6 +966,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   display: {fileID: 88991963}
   sampleDuration: 1
+  displayMode: 0
 --- !u!114 &1014795277
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1069,8 +1156,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2128212972}
-        m_TargetAssemblyTypeName: Graph, Assembly-CSharp
+      - m_Target: {fileID: 2128212974}
+        m_TargetAssemblyTypeName: GpuGraph, Assembly-CSharp
         m_MethodName: ChangePlay
         m_Mode: 1
         m_Arguments:
@@ -1468,33 +1555,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2128212973}
-  - component: {fileID: 2128212972}
+  - component: {fileID: 2128212974}
   m_Layer: 0
-  m_Name: Graph
+  m_Name: GpuGraph
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2128212972
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2128212971}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 26ab20491a4fd0943b61c1553c204c18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  pointPrefab: {fileID: 2989641491544699474, guid: 29b30b50cab527d44b04b50e2cb681ff, type: 3}
-  resolution: 100
-  speed: 8.9
-  dotParent: {fileID: 494696344}
-  sinPriquncy: 1
-  sinGraph: 4
-  newSinGraph: 4
 --- !u!4 &2128212973
 Transform:
   m_ObjectHideFlags: 0
@@ -1511,6 +1579,31 @@ Transform:
   - {fileID: 494696344}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2128212974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2128212971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e13b7588948ae049af9e38b80efc2cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointPrefab: {fileID: 2989641491544699474, guid: 29b30b50cab527d44b04b50e2cb681ff, type: 3}
+  resolution: 1000
+  speed: 2
+  dotParent: {fileID: 494696344}
+  sinPriquncy: 1
+  sinGraph: 4
+  newSinGraph: 3
+  functionDuration: 1
+  transitionDuration: 1
+  transitionMode: 0
+  computeShader: {fileID: 7200000, guid: 0eeaf199ee285ed46a671675ad5367c0, type: 3}
+  material: {fileID: -876546973899608171, guid: e4c7ad07efc0ced4aa0a5c7df47a4da3, type: 3}
+  mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1518,6 +1611,7 @@ SceneRoots:
   - {fileID: 416975649}
   - {fileID: 1963965865}
   - {fileID: 2128212973}
+  - {fileID: 860974542}
   - {fileID: 2087035169}
   - {fileID: 1406140837}
   - {fileID: 1524608423}

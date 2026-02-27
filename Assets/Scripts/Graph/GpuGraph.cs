@@ -12,11 +12,12 @@ using System.Threading;
 using System;
 using static Unity.VisualScripting.Member;
 using System.Timers;
+using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
-public class Graph : MonoBehaviour
+public class GpuGraph : MonoBehaviour
 {
     [SerializeField] private Transform pointPrefab;
-    [SerializeField, Range(10, 1000)] private int resolution = 10;
+    [SerializeField, Range(10, 10000)] private int resolution ;
     [SerializeField, Range(2, 20)] private float speed = 2f;
     [SerializeField] private Transform dotParent;
     [SerializeField, Range(0, 1)] private float sinPriquncy = 1f;
@@ -24,11 +25,23 @@ public class Graph : MonoBehaviour
     [SerializeField] private FunctionLibrary.NewFunctionName newSinGraph = NewFunctionName.Sphere;
     [SerializeField, Min(0)] private float functionDuration = 1f, transitionDuration = 1f;
     [SerializeField] private TransitionMode transitionMode = TransitionMode.Cycle;
+    [SerializeField]
+    ComputeShader computeShader;
+    [SerializeField]
+    Material material;
+    [SerializeField]
+    Mesh mesh;
+
+    static readonly int
+    positionsId = Shader.PropertyToID("_Positions"),
+    resolutionId = Shader.PropertyToID("_Resolution"),
+    stepId = Shader.PropertyToID("_Step"),
+    timeId = Shader.PropertyToID("_Time");
 
 
     float duration;
     Transform dot;
-    Transform[] points;
+
     delegate void playGraph(float a);
     playGraph play;
     enum GraphType { one, two, three, ripple, spiral, rspiral };
@@ -39,6 +52,10 @@ public class Graph : MonoBehaviour
 
     bool transitioning;
     FunctionLibrary.NewFunctionName transitionFunction;
+    ComputeBuffer positionsBuffer;
+    Bounds bounds;
+    //Vector3[] debugData;
+
 
 
     private void Awake()
@@ -51,15 +68,7 @@ public class Graph : MonoBehaviour
         //    point.localPosition = new Vector3(pos,pos*pos, 0);
         //    point.localScale = scale;
         //}
-        points = new Transform[resolution * resolution];
-        float step = 2f / resolution;
-        var scale = Vector3.one * step;
-        for (int j = 0; j < points.Length; j++)
-        {
-            points[j] = Instantiate(pointPrefab);
-            points[j].localScale = scale;
-            points[j].SetParent(dotParent);
-        }
+        //debugData = new Vector3[resolution * resolution];
 
         dot = Instantiate(pointPrefab);
         play = PlayGraph;
@@ -76,8 +85,37 @@ public class Graph : MonoBehaviour
 
     }
 
+    private void OnEnable()
+    {
+        positionsBuffer = new ComputeBuffer(resolution * resolution , 3*4);
+        bounds = new Bounds(Vector3.zero, Vector3.one * (2f + 2f / resolution));
+    }
+
+    private void OnDisable()
+    {
+        positionsBuffer?.Release();
+        positionsBuffer = null;
+    }
+
     float f = 0;
     int trigger = 1;
+
+    void UpdateFunctionOnGPU()
+    {
+        float step = 2f / resolution;
+        computeShader.SetInt(resolutionId, resolution);
+        computeShader.SetFloat(stepId, step);
+        computeShader.SetFloat(timeId, Time.time);
+        computeShader.SetBuffer(0, positionsId, positionsBuffer);
+        int groups = Mathf.CeilToInt(resolution / 8f);
+        computeShader.Dispatch(0, groups, groups, 1);
+        //positionsBuffer.GetData(debugData);
+        material.SetBuffer(positionsId, positionsBuffer);
+        material.SetFloat(stepId, step);
+        Graphics.DrawMeshInstancedProcedural(
+            mesh, 0, material, bounds, positionsBuffer.count
+        );
+    }
 
 
     public void SwitchingGraph()
@@ -188,63 +226,64 @@ public class Graph : MonoBehaviour
 
     void SinGraph(float t)
     {
-        f += speed * Time.deltaTime / 5f;
-        FunctionLibrary.actionFunc fuc;
-        FunctionLibrary.newActionFunc fnfuc, tnfunc, nnfunc;
-        float step = 2f / resolution;
-        if (sinGraph != FunctionName.None)
-        {
-            fuc = FunctionLibrary.GetFunction(sinGraph);
-            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
-            {
-                if (x == resolution)
-                {
-                    x = 0;
-                    z += 1;
-                }
-                Transform jpoint = points[j];
-                Vector3 position = jpoint.localPosition;
-                position.x = (x + 0.5f) * step - 1f;
-                position.z = ((z + 0.5f) * step - 1f);
-                position.y = fuc(position.x, position.z, t, sinPriquncy);
-                jpoint.localPosition = position;
-            }
-        }
-        else if (newSinGraph != NewFunctionName.None && transitioning)
-        {
-            fnfuc = FunctionLibrary.GetFunction(transitionFunction);
-            tnfunc = FunctionLibrary.GetFunction(newSinGraph);
-            float progress = duration / transitionDuration;
-            float v = 0.5f * step - 1f;
-            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
-            {
-                if (x == resolution)
-                {
-                    x = 0;
-                    z += 1;
-                    v = (z + 0.5f) * step - 1f;
-                }
-                float u = (x + 0.5f) * step - 1f;
-                points[j].localPosition = FunctionLibrary.Morph(u, v, t, sinPriquncy, fnfuc, tnfunc, progress);
-            }
-        }
-        else if (newSinGraph != NewFunctionName.None && !transitioning)
-        {
-            nnfunc = FunctionLibrary.GetFunction(newSinGraph);
-            float progress = f / transitionDuration;
-            float v = 0.5f * step - 1f;
-            for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
-            {
-                if (x == resolution)
-                {
-                    x = 0;
-                    z += 1;
-                    v = (z + 0.5f) * step - 1f;
-                }
-                float u = (x + 0.5f) * step - 1f;
-                points[j].localPosition = nnfunc(u, v, t, sinPriquncy);
-            }
-        }
+        UpdateFunctionOnGPU();
+        //f += speed * Time.deltaTime / 5f;
+        //FunctionLibrary.actionFunc fuc;
+        //FunctionLibrary.newActionFunc fnfuc, tnfunc, nnfunc;
+        //float step = 2f / resolution;
+        //if (sinGraph != FunctionName.None)
+        //{
+        //    fuc = FunctionLibrary.GetFunction(sinGraph);
+        //    for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
+        //    {
+        //        if (x == resolution)
+        //        {
+        //            x = 0;
+        //            z += 1;
+        //        }
+        //        Transform jpoint = points[j];
+        //        Vector3 position = jpoint.localPosition;
+        //        position.x = (x + 0.5f) * step - 1f;
+        //        position.z = ((z + 0.5f) * step - 1f);
+        //        position.y = fuc(position.x, position.z, t, sinPriquncy);
+        //        jpoint.localPosition = position;
+        //    }
+        //}
+        //else if (newSinGraph != NewFunctionName.None && transitioning)
+        //{
+        //    fnfuc = FunctionLibrary.GetFunction(transitionFunction);
+        //    tnfunc = FunctionLibrary.GetFunction(newSinGraph);
+        //    float progress = duration / transitionDuration;
+        //    float v = 0.5f * step - 1f;
+        //    for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
+        //    {
+        //        if (x == resolution)
+        //        {
+        //            x = 0;
+        //            z += 1;
+        //            v = (z + 0.5f) * step - 1f;
+        //        }
+        //        float u = (x + 0.5f) * step - 1f;
+        //        points[j].localPosition = FunctionLibrary.Morph(u, v, t, sinPriquncy, fnfuc, tnfunc, progress);
+        //    }
+        //}
+        //else if (newSinGraph != NewFunctionName.None && !transitioning)
+        //{
+        //    nnfunc = FunctionLibrary.GetFunction(newSinGraph);
+        //    float progress = f / transitionDuration;
+        //    float v = 0.5f * step - 1f;
+        //    for (int j = 0, x = 0, z = 0; j < points.Length; j++, x++)
+        //    {
+        //        if (x == resolution)
+        //        {
+        //            x = 0;
+        //            z += 1;
+        //            v = (z + 0.5f) * step - 1f;
+        //        }
+        //        float u = (x + 0.5f) * step - 1f;
+        //        points[j].localPosition = nnfunc(u, v, t, sinPriquncy);
+        //    }
+        //}
     }
 
 

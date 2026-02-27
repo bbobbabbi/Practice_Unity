@@ -32,4 +32,9 @@
 
   </details>
 
+ <details>
+  <summary>DAY 4</summary>
+
+  ### 오브젝트의 Transform 정보를 cpu를 거치지 않고 바로 gpu로 갈 수 있게 하여 많은 오브젝트를 생성함에도 비교적 높은 fps를 확보하였다.
+  </details>
 </details>
